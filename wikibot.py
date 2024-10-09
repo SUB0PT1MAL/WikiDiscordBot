@@ -2,8 +2,8 @@ import os
 import discord
 from discord.ext import commands
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.firefox.options import Options
 import logging
 import time
 import subprocess
@@ -35,41 +35,34 @@ WIKIS = {
 def create_driver():
     logging.debug("Creating WebDriver...")
     options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-dev-shm-usage')
-    options.add_argument('--disable-gpu')
-    options.add_argument('--disable-software-rasterizer')
+    options.add_argument('-headless')
 
-    chrome_path = "/usr/bin/google-chrome-stable"
-    chromedriver_path = "/usr/local/bin/chromedriver"
+    geckodriver_path = "/usr/local/bin/geckodriver"
 
-    logging.debug(f"Chrome path: {chrome_path}")
-    logging.debug(f"ChromeDriver path: {chromedriver_path}")
+    logging.debug(f"Geckodriver path: {geckodriver_path}")
 
-    # Log Chrome and ChromeDriver versions
+    # Log Firefox and geckodriver versions
     try:
-        chrome_version = subprocess.check_output([chrome_path, '--version']).decode('utf-8').strip()
-        chromedriver_version = subprocess.check_output([chromedriver_path, '--version']).decode('utf-8').strip()
-        logging.debug(f"Chrome version: {chrome_version}")
-        logging.debug(f"ChromeDriver version: {chromedriver_version}")
+        firefox_version = subprocess.check_output(['firefox', '--version']).decode('utf-8').strip()
+        geckodriver_version = subprocess.check_output([geckodriver_path, '--version']).decode('utf-8').strip()
+        logging.debug(f"Firefox version: {firefox_version}")
+        logging.debug(f"Geckodriver version: {geckodriver_version}")
     except subprocess.CalledProcessError as e:
         logging.error(f"Error getting version info: {e}")
-        logging.error(f"Chrome or ChromeDriver might not be installed correctly.")
+        logging.error(f"Firefox or geckodriver might not be installed correctly.")
         sys.exit(1)
 
-    options.binary_location = chrome_path
-    service = Service(executable_path=chromedriver_path)
+    service = Service(executable_path=geckodriver_path)
     
     try:
-        driver = webdriver.Chrome(service=service, options=options)
+        driver = webdriver.Firefox(service=service, options=options)
         logging.debug("WebDriver created successfully")
         return driver
     except Exception as e:
         logging.error(f"Error creating WebDriver: {str(e)}")
-        logging.error("Chrome and ChromeDriver versions:")
-        logging.error(f"Chrome: {chrome_version}")
-        logging.error(f"ChromeDriver: {chromedriver_version}")
+        logging.error("Firefox and geckodriver versions:")
+        logging.error(f"Firefox: {firefox_version}")
+        logging.error(f"Geckodriver: {geckodriver_version}")
         raise
 
 async def search_wiki_selenium(wiki_key, query):
