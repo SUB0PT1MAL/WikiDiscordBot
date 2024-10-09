@@ -20,7 +20,7 @@ async def on_ready():
 
 @bot.command()
 async def ping(ctx):
-    await ctx.send('Pong! I'm here and working.')
+    await ctx.send("Pong! I'm here and working.")
 
 # Dictionary to store wiki configurations
 WIKIS = {
