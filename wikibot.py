@@ -10,6 +10,9 @@ logging.basicConfig(level=logging.DEBUG)
 BOT_TOKEN = os.environ['BOT_TOKEN']
 
 intents = discord.Intents.default()
+intents.members = True
+intents.guilds = True
+intents.messages = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
@@ -30,15 +33,30 @@ WIKIS = {
     'e': "https://eldenring.wiki.fextralife.com/Elden+Ring+Wiki#gsc.tab=0&gsc.q="
 }
 
+# Rate limiting
+RATE_LIMIT = 1  # One request per second
+last_request_time = 0
+
 async def search_wiki(wiki_key, query):
+    global last_request_time
     base_url = WIKIS.get(wiki_key)
     if not base_url:
         return None, f"Invalid wiki key: {wiki_key}"
 
     search_url = base_url + query.replace(' ', '+')
 
+    # Implement rate limiting
+    current_time = asyncio.get_event_loop().time()
+    if current_time - last_request_time < RATE_LIMIT:
+        await asyncio.sleep(RATE_LIMIT - (current_time - last_request_time))
+    last_request_time = asyncio.get_event_loop().time()
+
+    headers = {
+        'User-Agent': 'DiscordBot/1.0 (https://discordapp.com)'
+    }
+
     async with aiohttp.ClientSession() as session:
-        async with session.get(search_url) as response:
+        async with session.get(search_url, headers=headers) as response:
             if response.status != 200:
                 return None, f"Error accessing the wiki: HTTP {response.status}"
 
@@ -52,11 +70,19 @@ async def search_wiki(wiki_key, query):
 
     return result['href'], result.text.strip()
 
+@bot.event
+async def on_ready():
+    print(f'{bot.user} has connected to Discord!')
+
+@bot.command()
+async def ping(ctx):
+    await ctx.send('Pong! I'm here and working.')
+
 @bot.command()
 async def w(ctx, wiki_key, *, query):
     url, title = await search_wiki(wiki_key, query)
     if not url:
-        await ctx.send(title)
+        await ctx.send(title)  # In this case, title contains the error message
         return
 
     hyperlink = f"[{title}]({url})"
@@ -66,7 +92,7 @@ async def w(ctx, wiki_key, *, query):
 async def wp(ctx, wiki_key, *, query):
     url, title = await search_wiki(wiki_key, query)
     if not url:
-        await ctx.send(title)
+        await ctx.send(title)  # In this case, title contains the error message
         return
 
     # Fetch the page content to get a summary
