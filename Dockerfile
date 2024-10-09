@@ -1,4 +1,3 @@
-# Use a Python base image
 FROM python:3.9-slim
 
 # Install system dependencies for Chrome and ChromeDriver
@@ -47,7 +46,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy your bot script
-COPY . /app
+COPY wikibot.py /app/bot.py
 WORKDIR /app
 
 CMD ["python", "bot.py"]
