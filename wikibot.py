@@ -2,6 +2,7 @@ import os
 import discord
 from discord.ext import commands
 from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import logging
 import time
@@ -29,14 +30,18 @@ WIKIS = {
 # Set up the headless browser with Selenium
 def create_driver():
     options = Options()
-    options.headless = True  # Run in headless mode (no GUI)
+    options.headless = True
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
 
-    # Point to the location of the ChromeDriver you installed
-    driver = webdriver.Chrome(options=options)
+    # Path to the Chrome binary and ChromeDriver in the Docker container
+    chrome_path = "/usr/bin/chromium"
+    chromedriver_path = "/usr/local/bin/chromedriver"
+
+    options.binary_location = chrome_path
+    driver = webdriver.Chrome(service=Service(chromedriver_path), options=options)
     return driver
 
 async def search_wiki_selenium(wiki_key, query):
