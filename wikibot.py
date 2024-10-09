@@ -17,14 +17,6 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-@bot.event
-async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
-
-@bot.command()
-async def ping(ctx):
-    await ctx.send("Pong! I'm here and working.")
-
 # Dictionary to store wiki configurations
 WIKIS = {
     '1': "https://darksouls.wiki.fextralife.com/Dark+Souls+Wiki#gsc.tab=0&gsc.q=",
@@ -76,7 +68,7 @@ async def on_ready():
 
 @bot.command()
 async def ping(ctx):
-    await ctx.send('Pong! I'm here and working.')
+    await ctx.send("Pong! I'm here and working.")
 
 @bot.command()
 async def w(ctx, wiki_key, *, query):
