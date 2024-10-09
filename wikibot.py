@@ -30,18 +30,19 @@ WIKIS = {
 # Set up the headless browser with Selenium
 def create_driver():
     options = Options()
-    options.add_argument('--headless')  # Run in headless mode
-    options.add_argument('--no-sandbox')  # Bypass OS security model, needed in Docker
-    options.add_argument('--disable-dev-shm-usage')  # Disable /dev/shm usage
-    options.add_argument('--disable-gpu')  # Disable GPU acceleration
-    options.add_argument('--disable-software-rasterizer')  # Disable software-based rendering
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    options.add_argument('--disable-software-rasterizer')
 
-    # Path to the Chrome binary and ChromeDriver in the Docker container
-    chrome_path = "/usr/bin/chromium"
-    chromedriver_path = "/usr/local/bin/chromedriver-linux64"
+    # Updated paths for Chrome and ChromeDriver
+    chrome_path = "/usr/bin/google-chrome-stable"
+    chromedriver_path = "/usr/local/bin/chromedriver"
 
     options.binary_location = chrome_path
-    driver = webdriver.Chrome(service=Service(chromedriver_path), options=options)
+    service = Service(executable_path=chromedriver_path)
+    driver = webdriver.Chrome(service=service, options=options)
     return driver
 
 async def search_wiki_selenium(wiki_key, query):
