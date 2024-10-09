@@ -1,6 +1,6 @@
 # Wiki Bot User Guide
 
-Welcome to the Wiki Bot! This bot helps you quickly access information from various game wikis directly in your Discord server. Here's how to use it:
+This bot helps you quickly access information from various game wikis directly in your Discord server. Here's how to use it:
 
 ## Available Commands
 
