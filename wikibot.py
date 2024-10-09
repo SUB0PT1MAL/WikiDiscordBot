@@ -56,12 +56,11 @@ async def search_wiki(wiki_key, query):
     'Referer': 'https://google.com/',  # Sometimes adding a referer helps
     }
 
-    async with aiohttp.ClientSession() as session:
-        async with session.get(search_url, headers=headers) as response:
-            if response.status != 200:
-                return None, f"Error accessing the wiki: HTTP {response.status}"
-
-            html = await response.text()
+    async with aiohttp.ClientSession(headers=headers) as session:
+    async with session.get(search_url) as response:
+        if response.status != 200:
+            return None, f"Error accessing the wiki: HTTP {response.status}"
+        html = await response.text()
 
     soup = BeautifulSoup(html, 'html.parser')
     result = soup.select_one('a.gs-title')
