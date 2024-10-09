@@ -38,7 +38,7 @@ def create_driver():
 
     # Path to the Chrome binary and ChromeDriver in the Docker container
     chrome_path = "/usr/bin/chromium"
-    chromedriver_path = "/usr/local/bin/chromedriver"
+    chromedriver_path = "/usr/local/bin/chromedriver-linux64"
 
     options.binary_location = chrome_path
     driver = webdriver.Chrome(service=Service(chromedriver_path), options=options)
