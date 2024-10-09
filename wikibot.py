@@ -6,6 +6,8 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import logging
 import time
+import subprocess
+import sys
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -19,6 +21,8 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 # Dictionary to store wiki configurations
 WIKIS = {
     '1': 'https://darksouls.wiki.fextralife.com/',
@@ -29,6 +33,7 @@ WIKIS = {
 
 # Set up the headless browser with Selenium
 def create_driver():
+    logging.debug("Creating WebDriver...")
     options = Options()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
@@ -36,14 +41,36 @@ def create_driver():
     options.add_argument('--disable-gpu')
     options.add_argument('--disable-software-rasterizer')
 
-    # Updated paths for Chrome and ChromeDriver
     chrome_path = "/usr/bin/google-chrome-stable"
     chromedriver_path = "/usr/local/bin/chromedriver"
 
+    logging.debug(f"Chrome path: {chrome_path}")
+    logging.debug(f"ChromeDriver path: {chromedriver_path}")
+
+    # Log Chrome and ChromeDriver versions
+    try:
+        chrome_version = subprocess.check_output([chrome_path, '--version']).decode('utf-8').strip()
+        chromedriver_version = subprocess.check_output([chromedriver_path, '--version']).decode('utf-8').strip()
+        logging.debug(f"Chrome version: {chrome_version}")
+        logging.debug(f"ChromeDriver version: {chromedriver_version}")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Error getting version info: {e}")
+        logging.error(f"Chrome or ChromeDriver might not be installed correctly.")
+        sys.exit(1)
+
     options.binary_location = chrome_path
     service = Service(executable_path=chromedriver_path)
-    driver = webdriver.Chrome(service=service, options=options)
-    return driver
+    
+    try:
+        driver = webdriver.Chrome(service=service, options=options)
+        logging.debug("WebDriver created successfully")
+        return driver
+    except Exception as e:
+        logging.error(f"Error creating WebDriver: {str(e)}")
+        logging.error("Chrome and ChromeDriver versions:")
+        logging.error(f"Chrome: {chrome_version}")
+        logging.error(f"ChromeDriver: {chromedriver_version}")
+        raise
 
 async def search_wiki_selenium(wiki_key, query):
     base_url = WIKIS.get(wiki_key)
