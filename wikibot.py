@@ -57,10 +57,10 @@ async def search_wiki(wiki_key, query):
     }
 
     async with aiohttp.ClientSession(headers=headers) as session:
-    async with session.get(search_url) as response:
-        if response.status != 200:
-            return None, f"Error accessing the wiki: HTTP {response.status}"
-        html = await response.text()
+        async with session.get(search_url) as response:
+            if response.status != 200:
+                return None, f"Error accessing the wiki: HTTP {response.status}"
+            html = await response.text()
 
     soup = BeautifulSoup(html, 'html.parser')
     result = soup.select_one('a.gs-title')
