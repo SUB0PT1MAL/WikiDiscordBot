@@ -19,8 +19,7 @@ WIKIS = {
     '1': "https://darksouls.wiki.fextralife.com/Dark+Souls+Wiki#gsc.tab=0&gsc.q=",
     '2': "https://darksouls2.wiki.fextralife.com/Dark+Souls+2+Wiki#gsc.tab=0&gsc.q=",
     '3': "https://darksouls3.wiki.fextralife.com/Dark+Souls+2+Wiki#gsc.tab=0&gsc.q=",
-    'e': "https://eldenring.wiki.fextralife.com/Elden+Ring+Wiki#gsc.tab=0&gsc.q=",
-
+    'e': "https://eldenring.wiki.fextralife.com/Elden+Ring+Wiki#gsc.tab=0&gsc.q="
 }
 
 async def search_wiki(wiki_key, query):
