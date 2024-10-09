@@ -4,6 +4,8 @@ from discord.ext import commands
 import aiohttp
 from bs4 import BeautifulSoup
 import logging
+import asyncio
+import time
 
 logging.basicConfig(level=logging.DEBUG)
 
