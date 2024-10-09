@@ -65,6 +65,8 @@ def create_driver():
         logging.error(f"Geckodriver: {geckodriver_version}")
         raise
 
+from selenium.webdriver.common.by import By
+
 async def search_wiki_selenium(wiki_key, query):
     base_url = WIKIS.get(wiki_key)
     if not base_url:
@@ -81,7 +83,7 @@ async def search_wiki_selenium(wiki_key, query):
         time.sleep(2)  # Let the page load
 
         # Locate the first result
-        result = driver.find_element_by_css_selector('a.gs-title')
+        result = driver.find_element(By.CSS_SELECTOR, 'a.gs-title')
 
         if result:
             return result.get_attribute('href'), result.text.strip()
