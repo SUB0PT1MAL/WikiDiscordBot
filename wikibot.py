@@ -30,11 +30,11 @@ WIKIS = {
 # Set up the headless browser with Selenium
 def create_driver():
     options = Options()
-    options.headless = True
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
+    options.add_argument('--headless')  # Run in headless mode
+    options.add_argument('--no-sandbox')  # Bypass OS security model, needed in Docker
+    options.add_argument('--disable-dev-shm-usage')  # Disable /dev/shm usage
+    options.add_argument('--disable-gpu')  # Disable GPU acceleration
+    options.add_argument('--disable-software-rasterizer')  # Disable software-based rendering
 
     # Path to the Chrome binary and ChromeDriver in the Docker container
     chrome_path = "/usr/bin/chromium"
