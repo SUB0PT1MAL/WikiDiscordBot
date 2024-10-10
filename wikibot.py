@@ -182,43 +182,50 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Regular expression to match both commands
-    pattern = r'!(\w+)\s+(\d+)\s+"(.*?)"'
-    matches = re.findall(pattern, message.content)
+    w_pattern = r'!w\s+(\d+)\s+"(.*?)"'
+    wp_pattern = r'!wp\s+(\d+)\s+"(.*?)"'
+    
+    w_matches = re.findall(w_pattern, message.content)
+    wp_matches = re.findall(wp_pattern, message.content)
 
-    if matches:
-        tasks = []
+    if w_matches:
         replacements = []
+        for match in w_matches:
+            key, search_term = match
+            url, title = await search_wiki_selenium(key, search_term)
+            if url and title:
+                hyperlink = f"[{title}]({url})"
+                replacements.append((f'!w {key} "{search_term}"', hyperlink))
+            else:
+                replacements.append((f'!w {key} "{search_term}"', f"No results found for '{search_term}'"))
 
-        for match in matches:
-            command, key, search_term = match
-            ctx = await bot.get_context(message)
+        new_content = message.content
+        for old, new in replacements:
+            new_content = new_content.replace(old, new)
 
-            if command == 'wp':
-                tasks.append(wp(ctx, key, query=search_term))
-            elif command == 'w':
-                # This assumes search_wiki_selenium is defined elsewhere and returns a tuple (url, title)
-                url, title = await search_wiki_selenium(key, search_term)
-                if url and title:
-                    hyperlink = f"[{title}]({url})"
-                    replacements.append((f'!w {key} "{search_term}"', hyperlink))
-                else:
-                    replacements.append((f'!w {key} "{search_term}"', f"No results found for '{search_term}'"))
+        try:
+            await message.edit(content=new_content)
+        except discord.Forbidden:
+            await message.channel.send("I don't have permission to edit messages. Please grant me the 'Manage Messages' permission.")
+        except discord.HTTPException:
+            await message.channel.send("An error occurred while trying to edit the message.")
 
-        await asyncio.gather(*tasks)
-
-        # If there are replacements for the `!w` command, edit the message content
-        if replacements:
-            new_content = message.content
-            for old, new in replacements:
-                new_content = new_content.replace(old, new)
-
-            try:
-                await message.edit(content=new_content)
-            except discord.Forbidden:
-                await message.channel.send("I don't have permission to edit messages. Please grant me the 'Manage Messages' permission.")
-            except discord.HTTPException:
-                await message.channel.send("An error occurred while trying to edit the message.")
+    if wp_matches:
+        driver = await driver_manager.get_driver()
+        for match in wp_matches:
+            key, search_term = match
+            url, title = await search_wiki_selenium(key, search_term)
+            if url and title:
+                try:
+                    summary_text = await get_page_summary(driver, url)
+                    if len(summary_text) > 200:
+                        summary_text = summary_text[:200] + "..."
+                    await message.channel.send(f"**{title}**\n{summary_text}\n\n{url}")
+                except Exception as e:
+                    logging.error(f"Error fetching page content: {str(e)}")
+                    await message.channel.send(f"An error occurred while fetching the page content for '{search_term}'")
+            else:
+                await message.channel.send(f"No results found for '{search_term}' in the specified wiki.")
 
     await bot.process_commands(message)
 
