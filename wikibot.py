@@ -87,10 +87,13 @@ async def search_wiki_selenium(wiki_key, query):
     try:
         driver.get(search_url)
         
+        logging.debug(f"Page title: {driver.title}")
+        logging.debug(f"Current URL: {driver.current_url}")
+        
         try:
-            # Wait for up to 10 seconds for the search results to be present
-            result = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.g div.r > a'))
+            # Wait for up to 2 seconds for the search results to be present
+            result = WebDriverWait(driver, 2).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.g a'))
             )
             return result.get_attribute('href'), result.text.strip()
         except TimeoutException:
