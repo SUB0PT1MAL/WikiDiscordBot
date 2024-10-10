@@ -116,31 +116,23 @@ async def ping(ctx):
     await ctx.send("Pong! I'm here and working.")
 
 @bot.command()
-async def w(ctx, wiki_key, *, query):
-    url, title = await search_wiki_selenium(wiki_key, query)
-    if not url:
-        await ctx.send(title)  # In this case, title contains the error message
-        return
-
-    hyperlink = f"[{title}]({url})"
-    await ctx.send(f"Here's the link for {hyperlink}")
-
-@bot.command()
 async def wp(ctx, wiki_key, *, query):
     url, title = await search_wiki_selenium(wiki_key, query)
     if not url:
         await ctx.send(title)  # In this case, title contains the error message
         return
 
-    # Fetch the page content to get a summary using Selenium
     driver = create_driver()
     try:
         driver.get(url)
-        time.sleep(2)  # Let the page load
-
-        # Fetch the summary from the page
-        summary = driver.find_element(By.CSS_SELECTOR, 'meta[property="og:description"]')
-        summary_text = summary.get_attribute('content') if summary else "No summary available."
+        
+        try:
+            summary = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'meta[property="og:description"]'))
+            )
+            summary_text = summary.get_attribute('content') if summary else "No summary available."
+        except (TimeoutException, NoSuchElementException):
+            summary_text = "No summary available."
 
         # Truncate summary if it's too long
         if len(summary_text) > 200:
@@ -149,6 +141,23 @@ async def wp(ctx, wiki_key, *, query):
         await ctx.send(f"**{title}**\n{summary_text}\n\n{url}")
     finally:
         driver.quit()
+
+@bot.command()
+async def w(ctx, wiki_key, *, query):
+    url, title = await search_wiki_selenium(wiki_key, query)
+    if not url:
+        await ctx.send(title)  # In this case, title contains the error message
+        return
+
+    # Create a hyperlink with the query text
+    hyperlink = f"[{query}]({url})"
+    
+    # Edit the original message
+    try:
+        await ctx.message.edit(content=hyperlink)
+    except discord.errors.Forbidden:
+        # If the bot doesn't have permission to edit the message, send a new one
+        await ctx.send(f"{ctx.author.mention} mentioned: {hyperlink}")
 
 @bot.event
 async def on_message(message):
@@ -162,8 +171,11 @@ async def on_message(message):
             wiki_key, query = parts[1], parts[2]
             url, title = await search_wiki_selenium(wiki_key, query)
             if url:
-                hyperlink = f"[{title}]({url})"
-                await message.channel.send(f"{message.author.mention} mentioned: {hyperlink}")
+                hyperlink = f"[{query}]({url})"
+                try:
+                    await message.edit(content=hyperlink)
+                except discord.errors.Forbidden:
+                    await message.channel.send(f"{message.author.mention} mentioned: {hyperlink}")
             else:
                 await message.channel.send(title)  # Error message
 
