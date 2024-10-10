@@ -93,7 +93,7 @@ async def search_wiki_selenium(wiki_key, query):
         
         try:
             # Wait for up to 2 seconds for the search results to be present
-            result = WebDriverWait(driver, 2).until(
+            result = WebDriverWait(driver, 1).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'div.g a'))
             )
             return result.get_attribute('href'), result.text.strip()
@@ -128,7 +128,7 @@ async def wp(ctx, wiki_key, *, query):
         driver.get(url)
         
         try:
-            summary = WebDriverWait(driver, 10).until(
+            summary = WebDriverWait(driver, 1).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, 'meta[property="og:description"]'))
             )
             summary_text = summary.get_attribute('content') if summary else "No summary available."
@@ -165,6 +165,9 @@ async def on_message(message):
     matches = re.findall(pattern, message.content)
 
     if matches:
+        # List to store all tasks (async search commands)
+        tasks = []
+
         # For each matched command in the message
         for match in matches:
             command = match[0]  # e.g., "wp"
@@ -174,12 +177,16 @@ async def on_message(message):
             # Rebuild the message content as a new command
             new_content = f'!{command} {key} "{search_term}"'
 
-            # Modify the message content to pass to the bot's process_commands method
+            # Create a new Message object with the cleaned-up content
             new_message = message
             new_message.content = new_content
 
-            # Process the new cleaned-up message for each match
-            await bot.process_commands(new_message)
+            # Add each search task to the list
+            tasks.append(bot.process_commands(new_message))
+
+        # Run all tasks in parallel using asyncio.gather
+        await asyncio.gather(*tasks)
+
     else:
         # Continue with normal command processing for other non-matching messages
         await bot.process_commands(message)
