@@ -1,3 +1,4 @@
+import asyncio
 import os
 import discord
 from discord.ext import commands
@@ -181,7 +182,7 @@ async def on_message(message):
             new_message = message
             new_message.content = new_content
 
-            # Add each search task to the list
+            # Add each search task to the list (properly await bot.process_commands)
             tasks.append(bot.process_commands(new_message))
 
         # Run all tasks in parallel using asyncio.gather
