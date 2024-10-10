@@ -128,7 +128,6 @@ async def search_wiki_selenium(wiki_key, query):
     else:
         return None, f"No results found for '{query}' in the specified wiki."
 
-
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
@@ -223,9 +222,6 @@ async def on_message(message):
             key, query = match
             await process_wp_command(message.channel, key, query)
 
-    # We still need this to process other commands
-    await bot.process_commands(message)
-
 async def process_wp_command(channel, wiki_key: str, query: str):
     url, title = await search_wiki_selenium(wiki_key, query)
     if url and title:
@@ -238,9 +234,5 @@ async def process_wp_command(channel, wiki_key: str, query: str):
             await channel.send(f"An error occurred while fetching the page content for '{query}'")
     else:
         await channel.send(f"No results found for '{query}' in the specified wiki.")
-
-@bot.command()
-async def wp(ctx, wiki_key: str, *, query: str):
-    await process_wp_command(ctx.channel, wiki_key, query)
 
 bot.run(BOT_TOKEN)
