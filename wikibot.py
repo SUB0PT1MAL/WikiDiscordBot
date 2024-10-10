@@ -131,7 +131,7 @@ async def search_wiki_selenium(wiki_key, query):
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
-    print(f'Bot has the following permissions: {bot.user.guild_permissions.value}'
+    print(f'Bot has the following permissions: {bot.user.guild_permissions.value}')
     await driver_manager.get_driver()
 
 @bot.command()
