@@ -2,8 +2,10 @@ import os
 import discord
 from discord.ext import commands
 from selenium import webdriver
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import logging
 import time
 import subprocess
@@ -72,24 +74,31 @@ async def search_wiki_selenium(wiki_key, query):
     if not base_url:
         return None, f"Invalid wiki key: {wiki_key}"
 
-    search_url = base_url + "?q=" + query.replace(" ", "+")
+    # Extract the domain from the base_url
+    domain = base_url.split('//')[1].split('/')[0]
+    
+    # Construct the Google search URL with site filter
+    search_url = f"https://www.google.com/search?q=site%3A{domain}+{query.replace(' ', '+')}"
 
-    # Initialize the Selenium WebDriver
     driver = create_driver()
 
     try:
-        # Open the search URL in the headless browser
         driver.get(search_url)
-        time.sleep(2)  # Let the page load
-
-        # Locate the first result
-        result = driver.find_element(By.CSS_SELECTOR, 'a.gs-title')
-
-        if result:
+        
+        try:
+            # Wait for up to 10 seconds for the search results to be present
+            result = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.g div.r > a'))
+            )
             return result.get_attribute('href'), result.text.strip()
-        else:
+        except TimeoutException:
+            print("Timeout waiting for Google search results. Page source:")
+            print(driver.page_source)
             return None, f"No results found for '{query}' in the specified wiki."
-
+        except NoSuchElementException:
+            print("Search results not found. Page source:")
+            print(driver.page_source)
+            return None, f"No results found for '{query}' in the specified wiki."
     finally:
         driver.quit()
 
