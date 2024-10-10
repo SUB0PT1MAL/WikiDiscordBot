@@ -144,13 +144,14 @@ async def wp(ctx, wiki_key, *, query):
         driver.quit()
 
 @bot.command()
-async def w(ctx, wiki_key, search_term):
-    # Check if the key is valid in WIKIS dictionary
-    if wiki_key in WIKIS:
-        wiki_url = WIKIS[wiki_key]
-        await ctx.send(f'Searching for "{search_term}" in the wiki: {wiki_url}')
-    else:
-        await ctx.send(f'Invalid wiki key: {wiki_key}')
+async def w(ctx, wiki_key, *, query):
+    url, title = await search_wiki_selenium(wiki_key, query)
+    if not url:
+        await ctx.send(title)  # In this case, title contains the error message
+        return
+
+    hyperlink = f"[{title}]({url})"
+    await ctx.send(f"Here's the link for {hyperlink}")
 
 
 @bot.event
@@ -159,31 +160,28 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Intercept commands that follow the common pattern (!w, !someOtherCommand, etc.)
-    if message.content.startswith('!'):
-        # Regular expression to capture the command, key, and quoted text
-        pattern = r'!(\w+)\s+(\d+)\s+"(.*?)"'
-        match = re.search(pattern, message.content)
+    # Search for commands anywhere in the message
+    # Regular expression to capture the command, key, and quoted text (appearing anywhere in the message)
+    pattern = r'!(\w+)\s+(\d+)\s+"(.*?)"'
+    match = re.search(pattern, message.content)
 
-        if match:
-            command = match.group(1)  # This will extract the command after !
-            key = match.group(2)      # This will extract the key (e.g., 1)
-            search_term = match.group(3)  # This extracts the text inside quotes
+    if match:
+        # Extract the command, key, and quoted text
+        command = match.group(1)  # e.g., "w"
+        key = match.group(2)      # e.g., "1"
+        search_term = match.group(3)  # e.g., "estus"
 
-            # Rebuild the message with only the extracted information
-            # This creates a new message like `!w 1 "search term"`
-            new_content = f'!{command} {key} "{search_term}"'
+        # Rebuild a clean message like `!w 1 "estus"`
+        new_content = f'!{command} {key} "{search_term}"'
 
-            # Create a new Message object with the cleaned-up content
-            new_message = message
-            new_message.content = new_content
+        # Modify the message content to pass to the bot's process_commands method
+        new_message = message
+        new_message.content = new_content
 
-            # Process the new message with the cleaned-up content
-            await bot.process_commands(new_message)
-        else:
-            await message.channel.send('Invalid command format. Use: !command <key> "<search_term>"')
+        # Process the new cleaned-up message
+        await bot.process_commands(new_message)
     else:
-        # If the message doesn't start with a command, continue normally
+        # Continue with normal command processing for other non-matching messages
         await bot.process_commands(message)
 
 bot.run(BOT_TOKEN)
