@@ -200,13 +200,18 @@ async def on_message(message):
             search_term = match[2]
 
             new_content = f'!{command} {key} "{search_term}"'
-            new_message = discord.Message(state=message._state, channel=message.channel, data=message.to_dict())
-            new_message.content = new_content
+            
+            # Create a new context for each command
+            ctx = await bot.get_context(message)
+            ctx.message.content = new_content
 
-            tasks.append(bot.process_commands(new_message))
+            if command == 'wp':
+                tasks.append(wp(ctx, key, query=search_term))
+            elif command == 'w':
+                tasks.append(w(ctx, key, query=search_term))
+            # Add more commands here if needed
 
         await asyncio.gather(*tasks)
     else:
         await bot.process_commands(message)
-
 bot.run(BOT_TOKEN)
