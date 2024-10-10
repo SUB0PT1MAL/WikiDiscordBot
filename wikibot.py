@@ -69,7 +69,7 @@ def run_in_executor(func):
 def perform_selenium_search(driver, search_url):
     driver.get(search_url)
     try:
-        result = WebDriverWait(driver, 5).until(
+        result = WebDriverWait(driver, 2).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, 'div.g a'))
         )
         return result.get_attribute('href'), result.text.strip()
@@ -132,6 +132,10 @@ async def search_wiki_selenium(wiki_key, query):
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
     print(f'Bot has the following permissions: {bot.user.guild_permissions.value}')
+    if bot.user.guild_permissions.manage_messages:
+        print("Bot has 'Manage Messages' permission.")
+    else:
+        print("Warning: Bot does not have 'Manage Messages' permission.")
     await driver_manager.get_driver()
 
 @bot.command()
@@ -139,22 +143,18 @@ async def ping(ctx):
     await ctx.send("Pong! I'm here and working.")
 
 @bot.command()
-async def wp(ctx, wiki_key, *, query):
+async def wp(ctx, wiki_key: str, *, query: str):
     url, title = await search_wiki_selenium(wiki_key, query)
-    if not url:
-        await ctx.send(title)  # In this case, title contains the error message
-        return
-
-    driver = await driver_manager.get_driver()
-    try:
-        summary_text = await get_page_summary(driver, url)
-        if len(summary_text) > 200:
-            summary_text = summary_text[:200] + "..."
-
-        await ctx.send(f"**{title}**\n{summary_text}\n\n{url}")
-    except Exception as e:
-        logging.error(f"Error fetching page content: {str(e)}")
-        await ctx.send(f"An error occurred while fetching the page content for '{query}'")
+    if url and title:
+        driver = await driver_manager.get_driver()
+        try:
+            summary_text = await get_page_summary(driver, url)
+            await ctx.send(f"**{title}**\n{summary_text}\n{url}")
+        except Exception as e:
+            logging.error(f"Error fetching page content: {str(e)}")
+            await ctx.send(f"An error occurred while fetching the page content for '{query}'")
+    else:
+        await ctx.send(f"No results found for '{query}' in the specified wiki.")
 
 @bot.command()
 async def w(ctx, wiki_key, *, query):
@@ -183,10 +183,7 @@ async def on_message(message):
         return
 
     w_pattern = r'!w\s+(\d+)\s+"(.*?)"'
-    wp_pattern = r'!wp\s+(\d+)\s+"(.*?)"'
-    
     w_matches = re.findall(w_pattern, message.content)
-    wp_matches = re.findall(wp_pattern, message.content)
 
     if w_matches:
         replacements = []
@@ -210,24 +207,6 @@ async def on_message(message):
         except discord.HTTPException:
             await message.channel.send("An error occurred while trying to edit the message.")
 
-    if wp_matches:
-        driver = await driver_manager.get_driver()
-        for match in wp_matches:
-            key, search_term = match
-            url, title = await search_wiki_selenium(key, search_term)
-            if url and title:
-                try:
-                    summary_text = await get_page_summary(driver, url)
-                    if len(summary_text) > 200:
-                        summary_text = summary_text[:200] + "..."
-                    await message.channel.send(f"**{title}**\n{summary_text}\n\n{url}")
-                except Exception as e:
-                    logging.error(f"Error fetching page content: {str(e)}")
-                    await message.channel.send(f"An error occurred while fetching the page content for '{search_term}'")
-            else:
-                await message.channel.send(f"No results found for '{search_term}' in the specified wiki.")
-
     await bot.process_commands(message)
 
-        
 bot.run(BOT_TOKEN)
