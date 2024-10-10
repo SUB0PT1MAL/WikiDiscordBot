@@ -131,6 +131,7 @@ async def search_wiki_selenium(wiki_key, query):
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
+    print(f'Bot has the following permissions: {bot.user.guild_permissions.value}'
     await driver_manager.get_driver()
 
 @bot.command()
@@ -181,22 +182,45 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    # Regular expression to match both commands
     pattern = r'!(\w+)\s+(\d+)\s+"(.*?)"'
     matches = re.findall(pattern, message.content)
 
     if matches:
         tasks = []
+        replacements = []
 
         for match in matches:
             command, key, search_term = match
             ctx = await bot.get_context(message)
+
             if command == 'wp':
                 tasks.append(wp(ctx, key, query=search_term))
             elif command == 'w':
-                tasks.append(w(ctx, key, query=search_term))
+                # This assumes search_wiki_selenium is defined elsewhere and returns a tuple (url, title)
+                url, title = await search_wiki_selenium(key, search_term)
+                if url and title:
+                    hyperlink = f"[{title}]({url})"
+                    replacements.append((f'!w {key} "{search_term}"', hyperlink))
+                else:
+                    replacements.append((f'!w {key} "{search_term}"', f"No results found for '{search_term}'"))
 
         await asyncio.gather(*tasks)
-    else:
-        await bot.process_commands(message)
+
+        # If there are replacements for the `!w` command, edit the message content
+        if replacements:
+            new_content = message.content
+            for old, new in replacements:
+                new_content = new_content.replace(old, new)
+
+            try:
+                await message.edit(content=new_content)
+            except discord.Forbidden:
+                await message.channel.send("I don't have permission to edit messages. Please grant me the 'Manage Messages' permission.")
+            except discord.HTTPException:
+                await message.channel.send("An error occurred while trying to edit the message.")
+
+    await bot.process_commands(message)
+
         
 bot.run(BOT_TOKEN)
