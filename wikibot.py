@@ -160,26 +160,26 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
-    # Search for commands anywhere in the message
-    # Regular expression to capture the command, key, and quoted text (appearing anywhere in the message)
+    # Regular expression to capture multiple commands, key, and quoted text within the message
     pattern = r'!(\w+)\s+(\d+)\s+"(.*?)"'
-    match = re.search(pattern, message.content)
+    matches = re.findall(pattern, message.content)
 
-    if match:
-        # Extract the command, key, and quoted text
-        command = match.group(1)  # e.g., "w"
-        key = match.group(2)      # e.g., "1"
-        search_term = match.group(3)  # e.g., "estus"
+    if matches:
+        # For each matched command in the message
+        for match in matches:
+            command = match[0]  # e.g., "wp"
+            key = match[1]      # e.g., "1"
+            search_term = match[2]  # e.g., "estus" or "divine blessing"
 
-        # Rebuild a clean message like `!w 1 "estus"`
-        new_content = f'!{command} {key} "{search_term}"'
+            # Rebuild the message content as a new command
+            new_content = f'!{command} {key} "{search_term}"'
 
-        # Modify the message content to pass to the bot's process_commands method
-        new_message = message
-        new_message.content = new_content
+            # Modify the message content to pass to the bot's process_commands method
+            new_message = message
+            new_message.content = new_content
 
-        # Process the new cleaned-up message
-        await bot.process_commands(new_message)
+            # Process the new cleaned-up message for each match
+            await bot.process_commands(new_message)
     else:
         # Continue with normal command processing for other non-matching messages
         await bot.process_commands(message)
