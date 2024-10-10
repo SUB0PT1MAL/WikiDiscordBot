@@ -144,50 +144,46 @@ async def wp(ctx, wiki_key, *, query):
         driver.quit()
 
 @bot.command()
-async def w(ctx, *args):
-    # Combine the message back into a single string
-    message_content = ' '.join(args)
-
-    # Use regular expression to extract the command format !w <key> "quoted text" only until the end of the quoted section
-    pattern = r'!w (\d+) "(.*?)"'
-    match = re.search(pattern, message_content)
-
-    if match:
-        # Extract the key (e.g., 1) and the quoted text (e.g., "war hammer")
-        wiki_key = match.group(1)
-        search_term = match.group(2)
-
-        # Check if the key is valid in WIKIS dictionary
-        if wiki_key in WIKIS:
-            wiki_url = WIKIS[wiki_key]
-            # Perform your logic with the extracted data (e.g., wiki search)
-            await ctx.send(f'Searching for "{search_term}" in the wiki: {wiki_url}')
-        else:
-            await ctx.send(f'Invalid wiki key: {wiki_key}')
+async def w(ctx, wiki_key, search_term):
+    # Check if the key is valid in WIKIS dictionary
+    if wiki_key in WIKIS:
+        wiki_url = WIKIS[wiki_key]
+        await ctx.send(f'Searching for "{search_term}" in the wiki: {wiki_url}')
     else:
-        await ctx.send('Invalid command format. Use: !w <wiki_key> "<search_term>"')
+        await ctx.send(f'Invalid wiki key: {wiki_key}')
 
 
 @bot.event
 async def on_message(message):
+    # Avoid the bot processing its own messages
     if message.author == bot.user:
         return
 
-    content = message.content
-    if content.startswith('!w '):
-        parts = content.split(maxsplit=2)
-        if len(parts) == 3:
-            wiki_key, query = parts[1], parts[2]
-            url, title = await search_wiki_selenium(wiki_key, query)
-            if url:
-                hyperlink = f"[{query}]({url})"
-                try:
-                    await message.edit(content=hyperlink)
-                except discord.errors.Forbidden:
-                    await message.channel.send(f"{message.author.mention} mentioned: {hyperlink}")
-            else:
-                await message.channel.send(title)  # Error message
+    # Intercept commands that follow the common pattern (!w, !someOtherCommand, etc.)
+    if message.content.startswith('!'):
+        # Regular expression to capture the command, key, and quoted text
+        pattern = r'!(\w+)\s+(\d+)\s+"(.*?)"'
+        match = re.search(pattern, message.content)
 
-    await bot.process_commands(message)
+        if match:
+            command = match.group(1)  # This will extract the command after !
+            key = match.group(2)      # This will extract the key (e.g., 1)
+            search_term = match.group(3)  # This extracts the text inside quotes
+
+            # Rebuild the message with only the extracted information
+            # This creates a new message like `!w 1 "search term"`
+            new_content = f'!{command} {key} "{search_term}"'
+
+            # Create a new Message object with the cleaned-up content
+            new_message = message
+            new_message.content = new_content
+
+            # Process the new message with the cleaned-up content
+            await bot.process_commands(new_message)
+        else:
+            await message.channel.send('Invalid command format. Use: !command <key> "<search_term>"')
+    else:
+        # If the message doesn't start with a command, continue normally
+        await bot.process_commands(message)
 
 bot.run(BOT_TOKEN)
