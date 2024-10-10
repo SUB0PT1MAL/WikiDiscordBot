@@ -196,6 +196,10 @@ async def on_message(message):
     wp_matches = re.findall(wp_pattern, message.content)
 
     if w_matches:
+        if not message.guild.me.guild_permissions.manage_messages:
+            await message.channel.send("I don't have permission to edit messages. Please grant me the 'Manage Messages' permission.")
+            return
+
         replacements = []
         for match in w_matches:
             key, search_term = match
@@ -212,10 +216,8 @@ async def on_message(message):
 
         try:
             await message.edit(content=new_content)
-        except discord.Forbidden:
-            await message.channel.send("I don't have permission to edit messages. Please grant me the 'Manage Messages' permission.")
-        except discord.HTTPException:
-            await message.channel.send("An error occurred while trying to edit the message.")
+        except discord.HTTPException as e:
+            await message.channel.send(f"An error occurred while trying to edit the message: {str(e)}")
 
     if wp_matches:
         for match in wp_matches:
