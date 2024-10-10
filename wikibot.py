@@ -1,4 +1,4 @@
-import asyncio
+import os
 import discord
 from discord.ext import commands
 from selenium import webdriver
@@ -9,7 +9,9 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import logging
-import re
+import time
+import subprocess
+import sys
 from functools import lru_cache
 
 
