@@ -128,14 +128,22 @@ async def search_wiki_selenium(wiki_key, query):
     else:
         return None, f"No results found for '{query}' in the specified wiki."
 
+
 @bot.event
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
-    print(f'Bot has the following permissions: {bot.user.guild_permissions.value}')
-    if bot.user.guild_permissions.manage_messages:
-        print("Bot has 'Manage Messages' permission.")
-    else:
-        print("Warning: Bot does not have 'Manage Messages' permission.")
+    
+    for guild in bot.guilds:
+        permissions = guild.me.guild_permissions
+        print(f'Permissions in guild "{guild.name}" (ID: {guild.id}):')
+        print(f'  Manage Messages: {permissions.manage_messages}')
+        print(f'  All permissions: {permissions.value}')
+        
+        if permissions.manage_messages:
+            print(f'  Bot has "Manage Messages" permission in "{guild.name}"')
+        else:
+            print(f'  Warning: Bot does not have "Manage Messages" permission in "{guild.name}"')
+    
     await driver_manager.get_driver()
 
 @bot.command()
