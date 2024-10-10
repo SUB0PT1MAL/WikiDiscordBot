@@ -1,5 +1,4 @@
 import asyncio
-import os
 import discord
 from discord.ext import commands
 from selenium import webdriver
@@ -10,9 +9,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 import logging
-import time
-import subprocess
-import sys
 import re
 from functools import lru_cache
 
@@ -45,23 +41,41 @@ class WebDriverManager:
         self.lock = asyncio.Lock()
 
     async def get_driver(self):
-        if self.driver is None:
-            options = Options()
-            options.add_argument('-headless')
-            service = Service(executable_path="/usr/local/bin/geckodriver")
-            self.driver = webdriver.Firefox(service=service, options=options)
-        return self.driver
+        async with self.lock:
+            if self.driver is None:
+                options = Options()
+                options.add_argument('-headless')
+                service = Service(executable_path="/usr/local/bin/geckodriver")
+                self.driver = webdriver.Firefox(service=service, options=options)
+            return self.driver
 
     async def close(self):
-        if self.driver:
-            self.driver.quit()
-            self.driver = None
+        async with self.lock:
+            if self.driver:
+                self.driver.quit()
+                self.driver = None
 
 driver_manager = WebDriverManager()
 
+def run_in_executor(func):
+    async def wrapper(*args, **kwargs):
+        loop = asyncio.get_event_loop()
+        return await loop.run_in_executor(None, func, *args, **kwargs)
+    return wrapper
+
+@run_in_executor
+def perform_selenium_search(driver, search_url):
+    driver.get(search_url)
+    try:
+        result = WebDriverWait(driver, 1).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'div.g a'))
+        )
+        return result.get_attribute('href'), result.text.strip()
+    except (TimeoutException, NoSuchElementException):
+        return None, None
+
 @lru_cache(maxsize=100)
 def cached_search(wiki_key, query):
-    # This function will cache results based on wiki_key and query
     return None, None  # Placeholder return, will be updated by the actual search
 
 # Set up the headless browser with Selenium
@@ -105,7 +119,6 @@ async def search_wiki_selenium(wiki_key, query):
     if not base_url:
         return None, f"Invalid wiki key: {wiki_key}"
 
-    # Check cache first
     cached_result = cached_search(wiki_key, query)
     if cached_result[0]:
         return cached_result
@@ -113,28 +126,15 @@ async def search_wiki_selenium(wiki_key, query):
     domain = base_url.split('//')[1].split('/')[0]
     search_url = f"https://www.google.com/search?q=site%3A{domain}+{query.replace(' ', '+')}"
 
-    async with driver_manager.lock:
-        driver = await driver_manager.get_driver()
-        try:
-            driver.get(search_url)
-            
-            try:
-                result = WebDriverWait(driver, 1).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'div.g a'))
-                )
-                url = result.get_attribute('href')
-                title = result.text.strip()
-                
-                # Update cache
-                cached_search.cache_clear()
-                cached_search(wiki_key, query)
-                return url, title
-            except (TimeoutException, NoSuchElementException):
-                return None, f"No results found for '{query}' in the specified wiki."
-        except Exception as e:
-            logging.error(f"Error during search: {str(e)}")
-            return None, f"An error occurred while searching for '{query}'"
+    driver = await driver_manager.get_driver()
+    url, title = await perform_selenium_search(driver, search_url)
 
+    if url and title:
+        cached_search.cache_clear()
+        cached_search(wiki_key, query)
+        return url, title
+    else:
+        return None, f"No results found for '{query}' in the specified wiki."
 
 @bot.event
 async def on_ready():
@@ -152,26 +152,27 @@ async def wp(ctx, wiki_key, *, query):
         await ctx.send(title)  # In this case, title contains the error message
         return
 
-    async with driver_manager.lock:
-        driver = await driver_manager.get_driver()
-        try:
-            driver.get(url)
-            
-            try:
-                summary = WebDriverWait(driver, 1).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, 'meta[property="og:description"]'))
-                )
-                summary_text = summary.get_attribute('content') if summary else "No summary available."
-            except (TimeoutException, NoSuchElementException):
-                summary_text = "No summary available."
+    driver = await driver_manager.get_driver()
+    try:
+        summary_text = await run_in_executor(lambda: get_page_summary(driver, url))()
+        if len(summary_text) > 200:
+            summary_text = summary_text[:200] + "..."
 
-            if len(summary_text) > 200:
-                summary_text = summary_text[:200] + "..."
+        await ctx.send(f"**{title}**\n{summary_text}\n\n{url}")
+    except Exception as e:
+        logging.error(f"Error fetching page content: {str(e)}")
+        await ctx.send(f"An error occurred while fetching the page content for '{query}'")
 
-            await ctx.send(f"**{title}**\n{summary_text}\n\n{url}")
-        except Exception as e:
-            logging.error(f"Error fetching page content: {str(e)}")
-            await ctx.send(f"An error occurred while fetching the page content for '{query}'")
+@run_in_executor
+def get_page_summary(driver, url):
+    driver.get(url)
+    try:
+        summary = WebDriverWait(driver, 1).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'meta[property="og:description"]'))
+        )
+        return summary.get_attribute('content') if summary else "No summary available."
+    except (TimeoutException, NoSuchElementException):
+        return "No summary available."
 
 @bot.command()
 async def w(ctx, wiki_key, *, query):
@@ -195,23 +196,17 @@ async def on_message(message):
         tasks = []
 
         for match in matches:
-            command = match[0]
-            key = match[1]
-            search_term = match[2]
-
-            new_content = f'!{command} {key} "{search_term}"'
-            
-            # Create a new context for each command
+            command, key, search_term = match
             ctx = await bot.get_context(message)
-            ctx.message.content = new_content
-
             if command == 'wp':
                 tasks.append(wp(ctx, key, query=search_term))
             elif command == 'w':
                 tasks.append(w(ctx, key, query=search_term))
             # Add more commands here if needed
 
+        # Execute all tasks concurrently
         await asyncio.gather(*tasks)
     else:
         await bot.process_commands(message)
+        
 bot.run(BOT_TOKEN)
