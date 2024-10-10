@@ -12,6 +12,7 @@ import logging
 import time
 import subprocess
 import sys
+import re
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -143,21 +144,28 @@ async def wp(ctx, wiki_key, *, query):
         driver.quit()
 
 @bot.command()
-async def w(ctx, wiki_key, *, query):
-    url, title = await search_wiki_selenium(wiki_key, query)
-    if not url:
-        await ctx.send(title)  # In this case, title contains the error message
-        return
+async def w(ctx, *args):
+    # Combine the message back into a single string
+    message_content = ' '.join(args)
 
-    # Create a hyperlink with the query text
-    hyperlink = f"[{query}]({url})"
-    
-    # Edit the original message
-    try:
-        await ctx.message.edit(content=hyperlink)
-    except discord.errors.Forbidden:
-        # If the bot doesn't have permission to edit the message, send a new one
-        await ctx.send(f"{ctx.author.mention} mentioned: {hyperlink}")
+    # Use regular expression to extract the command format !w <key> "quoted text"
+    pattern = r'!w (\d+) "(.*?)"'
+    match = re.search(pattern, message_content)
+
+    if match:
+        # Extract the key (e.g., 1) and the quoted text (e.g., "war hammer")
+        wiki_key = match.group(1)
+        search_term = match.group(2)
+
+        # Check if the key is valid in WIKIS dictionary
+        if wiki_key in WIKIS:
+            wiki_url = WIKIS[wiki_key]
+            # Perform your logic with the extracted data (e.g., wiki search)
+            await ctx.send(f'Searching for "{search_term}" in the wiki: {wiki_url}')
+        else:
+            await ctx.send(f'Invalid wiki key: {wiki_key}')
+    else:
+        await ctx.send('Invalid command format. Use: !w <wiki_key> "<search_term>"')
 
 @bot.event
 async def on_message(message):
