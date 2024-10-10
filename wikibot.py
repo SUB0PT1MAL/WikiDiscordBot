@@ -148,7 +148,7 @@ async def w(ctx, *args):
     # Combine the message back into a single string
     message_content = ' '.join(args)
 
-    # Use regular expression to extract the command format !w <key> "quoted text"
+    # Use regular expression to extract the command format !w <key> "quoted text" only until the end of the quoted section
     pattern = r'!w (\d+) "(.*?)"'
     match = re.search(pattern, message_content)
 
@@ -166,6 +166,7 @@ async def w(ctx, *args):
             await ctx.send(f'Invalid wiki key: {wiki_key}')
     else:
         await ctx.send('Invalid command format. Use: !w <wiki_key> "<search_term>"')
+
 
 @bot.event
 async def on_message(message):
