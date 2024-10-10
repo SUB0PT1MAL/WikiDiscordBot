@@ -191,7 +191,10 @@ async def on_message(message):
         return
 
     w_pattern = r'!w\s+(\d+)\s+"(.*?)"'
+    wp_pattern = r'!wp\s+(\d+)\s+"(.*?)"'
+    
     w_matches = re.findall(w_pattern, message.content)
+    wp_matches = re.findall(wp_pattern, message.content)
 
     if w_matches:
         replacements = []
@@ -215,6 +218,29 @@ async def on_message(message):
         except discord.HTTPException:
             await message.channel.send("An error occurred while trying to edit the message.")
 
+    if wp_matches:
+        for match in wp_matches:
+            key, query = match
+            await process_wp_command(message.channel, key, query)
+
+    # We still need this to process other commands
     await bot.process_commands(message)
+
+async def process_wp_command(channel, wiki_key: str, query: str):
+    url, title = await search_wiki_selenium(wiki_key, query)
+    if url and title:
+        driver = await driver_manager.get_driver()
+        try:
+            summary_text = await get_page_summary(driver, url)
+            await channel.send(f"**{title}**\n{summary_text}\n{url}")
+        except Exception as e:
+            logging.error(f"Error fetching page content: {str(e)}")
+            await channel.send(f"An error occurred while fetching the page content for '{query}'")
+    else:
+        await channel.send(f"No results found for '{query}' in the specified wiki.")
+
+@bot.command()
+async def wp(ctx, wiki_key: str, *, query: str):
+    await process_wp_command(ctx.channel, wiki_key, query)
 
 bot.run(BOT_TOKEN)
