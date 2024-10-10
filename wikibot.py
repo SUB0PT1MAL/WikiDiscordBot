@@ -139,7 +139,7 @@ async def wp(ctx, wiki_key, *, query):
         time.sleep(2)  # Let the page load
 
         # Fetch the summary from the page
-        summary = driver.find_element_by_css_selector('meta[property="og:description"]')
+        summary = driver.find_element(By.CSS_SELECTOR, 'meta[property="og:description"]')
         summary_text = summary.get_attribute('content') if summary else "No summary available."
 
         # Truncate summary if it's too long
