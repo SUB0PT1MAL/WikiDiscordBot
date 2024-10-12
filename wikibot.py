@@ -165,7 +165,7 @@ async def wp(ctx, wiki_key: str, *, query: str):
         await ctx.send(f"No results found for '{query}' in the specified wiki.")
 
 @bot.command()
-async def w(ctx, wiki_key, *, query):
+async def w(ctx, wiki_key: str, *, query: str):
     url, title = await search_wiki_selenium(wiki_key, query)
     if not url:
         await ctx.send(title)  # In this case, title contains the error message
