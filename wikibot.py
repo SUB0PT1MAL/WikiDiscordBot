@@ -189,9 +189,9 @@ def get_page_summary(driver, url):
 async def on_message(message):
     if message.author == bot.user:
         return
-
-    w_pattern = r'!w\s+(\d+)\s+"(.*?)"'
-    wp_pattern = r'!wp\s+(\d+)\s+"(.*?)"'
+    
+    w_pattern = r'!w\s+([a-zA-Z0-9])\s+"(.*?)"'
+    wp_pattern = r'!wp\s+([a-zA-Z0-9])\s+"(.*?)"'
     
     w_matches = re.findall(w_pattern, message.content)
     wp_matches = re.findall(wp_pattern, message.content)
@@ -224,6 +224,8 @@ async def on_message(message):
         for match in wp_matches:
             key, query = match
             await process_wp_command(message.channel, key, query)
+    
+    await bot.process_commands(message)
 
 async def process_wp_command(channel, wiki_key: str, query: str):
     url, title = await search_wiki_selenium(wiki_key, query)
