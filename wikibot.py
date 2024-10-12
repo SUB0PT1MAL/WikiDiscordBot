@@ -34,7 +34,8 @@ WIKIS = {
     '1': 'https://darksouls.wiki.fextralife.com/',
     '2': 'https://darksouls2.wiki.fextralife.com/',
     '3': 'https://darksouls3.wiki.fextralife.com/',
-    'e': 'https://eldenring.wiki.fextralife.com/'
+    'e': 'https://eldenring.wiki.fextralife.com/',
+    's': 'https://sekiroshadowsdietwice.wiki.fextralife.com/'
 }
 
 class WebDriverManager:
