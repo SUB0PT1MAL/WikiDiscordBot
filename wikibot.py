@@ -225,7 +225,7 @@ async def on_message(message):
             key, query = match
             await process_wp_command(message.channel, key, query)
     
-    await bot.process_commands(message)
+   # await bot.process_commands(message)
 
 async def process_wp_command(channel, wiki_key: str, query: str):
     url, title = await search_wiki_selenium(wiki_key, query)
